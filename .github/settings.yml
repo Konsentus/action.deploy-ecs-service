@@ -1,8 +1,8 @@
 # see: https://github.com/probot/settings
 
 repository:
-  name: template.github-action
-  description: Basic template repo for Github actions
+  name: action.deploy-ecs-service
+  description: Github action to apply updated container images to a running task
   topics: action
   private: false
   has_issues: false

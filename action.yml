@@ -1,6 +1,12 @@
-name: # the name of the action
-description: # additional descriptive info about the action
+name: Build, Tag and Push Docker Image to ECR
+description: Apply updated container images to a running task
 runs:
   using: 'docker'
   image: 'Dockerfile'
-# for additional options, see: https://help.github.com/en/articles/metadata-syntax-for-github-actions
+inputs:
+  cluster_name:
+    description: The destination name of the cluster to deploy to.
+    required: true
+  service_name:
+    description: Name of the service.
+    required: true
