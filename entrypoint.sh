@@ -55,7 +55,14 @@ assume_role() {
 }
 
 deploy_service_task() {
-  aws ecs update-service --cluster ${CLUSTER_NAME} --service ${INPUT_SERVICE_NAME} --force-new-deployment
+  aws ecs update-service \
+    --cluster ${CLUSTER_NAME} \
+    --service ${INPUT_SERVICE_NAME} \
+    --force-new-deployment
+
+  aws ecs wait services-stable \
+    --cluster ${CLUSTER_NAME} \
+    --services ${INPUT_SERVICE_NAME} \
 }
 
 # Returns branch name
