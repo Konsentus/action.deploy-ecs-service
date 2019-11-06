@@ -56,10 +56,15 @@ assume_role() {
 }
 
 deploy_service_task() {
-  aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment
+  aws ecs update-service --cluster ${CLUSTER_NAME} --service ${INPUT_SERVICE_NAME} --force-new-deployment
 }
 
-CLUSTER_NAME="${INPUT_CLUSTER_NAME}"
+# Returns branch name
+# e.g. return "master" from "refs/heads/master"
+BRANCH_NAME=${GITHUB_REF##*/}
+
+AWS_ACCOUNT_ID="$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq .$BRANCH_NAME.awsAccountId)"
+CLUSTER_NAME="$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq .$BRANCH_NAME.clusterName)"
 SERVICE_NAME="${INPUT_SERVICE_NAME}"
 
 
