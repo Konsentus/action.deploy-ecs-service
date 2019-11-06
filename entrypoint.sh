@@ -56,7 +56,7 @@ assume_role() {
 }
 
 deploy_service_task() {
-    $( aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment )
+  aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment
 }
 
 CLUSTER_NAME="${INPUT_CLUSTER_NAME}"
