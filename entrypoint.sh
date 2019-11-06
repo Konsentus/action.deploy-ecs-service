@@ -62,6 +62,10 @@ deploy_service_task() {
 # e.g. return "master" from "refs/heads/master"
 BRANCH_NAME=${GITHUB_REF##*/}
 
+echo "config: $INPUT_ENVIRONMENT_CONFIGURATION"
+CONFIG_AS_JSON=$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq)
+echo "config as json: $CONFIG_AS_JSON"
+echo "branch name: $BRANCH_NAME"
 AWS_ACCOUNT_ID="$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq .$BRANCH_NAME.awsAccountId)"
 CLUSTER_NAME="$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq .$BRANCH_NAME.clusterName)"
 SERVICE_NAME="${INPUT_SERVICE_NAME}"
