@@ -20,3 +20,51 @@
 # -- DONT FORGET TO SET OUTPUTS IN action.yml IF RETURNING OUTPUTS
 
 # exit with a non-zero status to flag an error/failure
+
+# Ensures required environment variables are supplied by workflow
+check_env_vars() {
+  local requiredVariables=(
+    "AWS_ACCESS_KEY_ID"
+    "AWS_SECRET_ACCESS_KEY"
+    "AWS_ACCOUNT_ROLE"
+    "AWS_ACCOUNT_ID"
+    "AWS_REGION"
+  )
+
+  for VARIABLE_NAME in "${requiredVariables[@]}"
+  do
+    if [[ -z "${!VARIABLE_NAME}" ]]; then
+      echo "Required environment variable: ${VARIABLE_NAME} is not defined. Exiting..."
+      exit 3;
+    fi
+  done
+}
+
+assume_role() {
+  echo "Assuming role: ${AWS_ACCOUNT_ROLE} in account: ${AWS_ACCOUNT_ID}..."
+  local credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${AWS_ACCOUNT_ROLE}" --role-session-name docker-push --output json)
+
+  export AWS_ACCESS_KEY_ID
+  export AWS_SECRET_ACCESS_KEY
+  export AWS_SESSION_TOKEN
+  export AWS_DEFAULT_REGION=${AWS_REGION}
+
+  AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId <<< ${credentials})
+  AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey <<< ${credentials})
+  AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken <<< ${credentials})
+  echo "Successfully assumed role"
+}
+
+deploy_service_task() {
+    $( aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment )
+}
+
+CLUSTER_NAME="${INPUT_CLUSTER_NAME}"
+SERVICE_NAME="${INPUT_SERVICE_NAME}"
+
+
+check_env_vars
+assume_role
+
+echo "Deploying service ${SERVICE_NAME} to cluster ${CLUSTER_NAME}..."
+deploy_service_task
