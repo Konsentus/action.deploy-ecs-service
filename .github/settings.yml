@@ -2,7 +2,7 @@
 
 repository:
   name: action.deploy-ecs-service
-  description: Github action to apply updated container images to a running task
+  description: Github action to apply updated container images to an ECS service
   topics: action
   private: false
   has_issues: false
