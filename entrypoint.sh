@@ -140,4 +140,6 @@ check_task_container_digest
 
 if [ $? -ne 0 ]; then
   exit $?
+else
+  exit 0
 fi
