@@ -103,7 +103,7 @@ check_task_container_digest() {
 
   for task_arn in $(echo "$running_tasks" | jq -r '.[]'); do
     echo "Retrieving image digest for task: $task_arn"
-    local task_image_digest=$(aws ecs describe-tasks --tasks $task_arn --cluster $cluster_name | jq -r .tasks[0].containers[0].imageDigest | cut -d : -f 2)
+    local task_image_digest=$(aws ecs describe-tasks --tasks $task_arn --cluster $cluster_name | jq -r .tasks[0].containers[0].imageDigest)
 
     if [ "$task_image_digest" == "$INPUT_EXPECTED_IMAGE_DIGEST" ]; then
       echo "The image digest for task: $task_arn matches the expected image digest"
