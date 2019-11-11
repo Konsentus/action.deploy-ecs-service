@@ -107,8 +107,10 @@ check_task_container_digest() {
 
     if [ "$task_image_digest" == "$INPUT_EXPECTED_IMAGE_DIGEST" ]; then
       echo "The image digest for task: $task_arn matches the expected image digest"
+      return 0
     else
       echo "The image digest for task: $task_arn does not match the expected image digest: $task_image_digest"
+      return 3
     fi
   done
 }
@@ -135,3 +137,8 @@ deploy_service_task
 wait_for_service_to_stabilise
 
 check_task_container_digest
+
+if [ $? -ne 0 ]
+  echo "Deploy to ECS failed"
+  exit 3
+fi
