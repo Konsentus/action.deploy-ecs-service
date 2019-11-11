@@ -138,7 +138,6 @@ wait_for_service_to_stabilise
 
 check_task_container_digest
 
-if [ $? -ne 0 ]
-  echo "Deploy to ECS failed"
-  exit 3
+if [ $? -ne 0 ]; then
+  exit $?
 fi
