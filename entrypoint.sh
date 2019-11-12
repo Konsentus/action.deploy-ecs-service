@@ -100,6 +100,11 @@ check_task_container_digest() {
   echo "Retrieving task ARNs"
   local running_tasks=$(aws ecs list-tasks --cluster $cluster_name --service-name $service_name --desired-status RUNNING | jq .taskArns)
 
+  if [ ${#running_tasks[@]} -eq 0 ]; then
+    echo "No running tasks found"
+    return 3
+  fi
+
   for task_arn in $(echo "$running_tasks" | jq -r '.[]'); do
     echo "Retrieving image digest for task: $task_arn"
     local task_image_digest=$(aws ecs describe-tasks --tasks $task_arn --cluster $cluster_name | jq -r .tasks[0].containers[0].imageDigest)
