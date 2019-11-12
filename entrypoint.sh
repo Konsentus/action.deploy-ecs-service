@@ -34,7 +34,7 @@ check_env_vars() {
   do
     if [[ -z "${!variable_name}" ]]; then
       echo "Required environment variable: $variable_name is not defined. Exiting"
-      exit 3;
+      return 3;
     fi
   done
 }
@@ -43,13 +43,12 @@ assume_role() {
   echo "Assuming role: $AWS_ACCOUNT_ROLE in account: $aws_account_id"
 
   local credentials
-
   credentials=$(aws sts assume-role --role-arn "arn:aws:iam::$aws_account_id:role/$AWS_ACCOUNT_ROLE" --role-session-name ecs-force-refresh --output json)
   assume_role_result=$?
 
   if [ $assume_role_result -ne 0 ]; then
     echo "Failed to assume role $AWS_ACCOUNT_ROLE in account: $AWS_ACCOUNT_ID. Exiting"
-    exit $assume_role_result
+    return $assume_role_result
   fi
 
   export AWS_ACCESS_KEY_ID
@@ -68,23 +67,24 @@ deploy_service_task() {
   echo "Forcing deployment of the $service_name service in the $cluster_name cluster"
 
   local service_metadata
-
   service_metadata=$(aws ecs update-service --cluster $cluster_name --service $INPUT_SERVICE_NAME --force-new-deployment)
-
   local exitCode=$?
+
   if [ $exitCode -ne 0 ]; then
     echo "Failed to force new deployment of the $service_name service in the $cluster_name cluster. Exiting"
-    exit $exitCode
+    return $exitCode
   fi
 }
 
 wait_for_service_to_stabilise() {
   echo "Waiting for the service to stabilise"
+
   aws ecs wait services-stable --cluster $cluster_name --services $INPUT_SERVICE_NAME
   local exit_code=$?
+
   if [ $exit_code -ne 0 ]; then
     echo "Failed to wait for the stabilisation of the $service_name service in the $cluster_name cluster. Exiting"
-    exit $exit_code
+    return $exit_code
   fi
   echo "Service has stabilised"
 }
@@ -95,11 +95,10 @@ truncate_long_string() {
 
 check_task_container_digest() {
   echo "Checking container image digests"
-  echo "Expected image digest: $INPUT_EXPECTED_IMAGE_DIGEST"
 
+  echo "Expected image digest: $INPUT_EXPECTED_IMAGE_DIGEST"
   echo "Retrieving task ARNs"
   local running_tasks=$(aws ecs list-tasks --cluster $cluster_name --service-name $service_name --desired-status RUNNING | jq .taskArns)
-
 
   for task_arn in $(echo "$running_tasks" | jq -r '.[]'); do
     echo "Retrieving image digest for task: $task_arn"
@@ -128,20 +127,12 @@ service_name=$INPUT_SERVICE_NAME
 echo "Target cluster: $cluster_name"
 echo "Target service: $service_name"
 
-check_env_vars
+check_env_vars || exit $?
 
-assume_role
+assume_role || exit $?
 
-deploy_service_task
+deploy_service_task || exit $?
 
-wait_for_service_to_stabilise
+wait_for_service_to_stabilise || exit $?
 
-check_task_container_digest
-
-if [ $? -ne 0 ]; then
-  exit $?
-else
-  exit 0
-fi
-
-echo "Done"
+check_task_container_digest || exit $?
