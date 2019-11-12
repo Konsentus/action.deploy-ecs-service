@@ -33,7 +33,7 @@ check_env_vars() {
   for variable_name in "${requiredVariables[@]}"
   do
     if [[ -z "${!variable_name}" ]]; then
-      echo "Required environment variable: $variable_name is not defined. Exiting"
+      echo "Required environment variable: $variable_name is not defined" >&2
       return 3;
     fi
   done
@@ -47,7 +47,7 @@ assume_role() {
   assume_role_result=$?
 
   if [ $assume_role_result -ne 0 ]; then
-    echo "Failed to assume role $AWS_ACCOUNT_ROLE in account: $AWS_ACCOUNT_ID. Exiting"
+    echo "Failed to assume role $AWS_ACCOUNT_ROLE in account: $AWS_ACCOUNT_ID" >&2
     return $assume_role_result
   fi
 
@@ -71,7 +71,7 @@ deploy_service_task() {
   local exitCode=$?
 
   if [ $exitCode -ne 0 ]; then
-    echo "Failed to force new deployment of the $service_name service in the $cluster_name cluster. Exiting"
+    echo "Failed to force new deployment of the $service_name service in the $cluster_name cluster" >&2
     return $exitCode
   fi
 }
@@ -83,7 +83,7 @@ wait_for_service_to_stabilise() {
   local exit_code=$?
 
   if [ $exit_code -ne 0 ]; then
-    echo "Failed to wait for the stabilisation of the $service_name service in the $cluster_name cluster. Exiting"
+    echo "Failed to wait for the stabilisation of the $service_name service in the $cluster_name cluster" >&2
     return $exit_code
   fi
   echo "Service has stabilised"
@@ -101,7 +101,7 @@ check_task_container_digest() {
   local running_tasks=$(aws ecs list-tasks --cluster $cluster_name --service-name $service_name --desired-status RUNNING | jq .taskArns)
 
   if [ ${#running_tasks[@]} -eq 0 ]; then
-    echo "No running tasks found"
+    echo "No running tasks found" >&2
     return 3
   fi
 
@@ -113,7 +113,7 @@ check_task_container_digest() {
       echo "The image digest for task: $task_arn matches the expected image digest"
       return 0
     else
-      echo "The image digest for task: $task_arn does not match the expected image digest: $task_image_digest"
+      echo "The image digest for task: $task_arn does not match the expected image digest: $task_image_digest" >&2
       return 3
     fi
   done
