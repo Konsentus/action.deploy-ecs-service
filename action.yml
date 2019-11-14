@@ -11,5 +11,5 @@ inputs:
     description: Name of the target service
     required: true
   expected_image_digest:
-    description: The container image digest that should be running in the ECS service after the deployment has completed
-    required: true
+    description: The container image digest that should be running in the ECS service after the deployment has completed. Omit this argument to skip the Docker image digest check
+    required: false
