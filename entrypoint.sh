@@ -33,104 +33,104 @@ check_env_vars() {
   for variable_name in "${requiredVariables[@]}"
   do
     if [[ -z "${!variable_name}" ]]; then
-      echo "Required environment variable: $variable_name is not defined" >&2
+      echo "Required environment variable: ${variable_name} is not defined" >&2
       return 3;
     fi
   done
 }
 
+# Assume a role in AWS using AWS STS
 assume_role() {
-  echo "Assuming role: $AWS_ACCOUNT_ROLE in account: $aws_account_id"
+  echo "Assuming role: ${AWS_ACCOUNT_ROLE}, in account: ${aws_account_id}"
 
   local credentials
-  credentials=$(aws sts assume-role --role-arn "arn:aws:iam::$aws_account_id:role/$AWS_ACCOUNT_ROLE" --role-session-name ecs-force-refresh --output json)
+  credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${aws_account_id}:role/${AWS_ACCOUNT_ROLE}" --role-session-name ecs-force-refresh --output json)
   assume_role_result=$?
 
-  if [ $assume_role_result -ne 0 ]; then
-    echo "Failed to assume role $AWS_ACCOUNT_ROLE in account: $AWS_ACCOUNT_ID" >&2
-    return $assume_role_result
+  if [ ${assume_role_result} -ne 0 ]; then
+    echo "Failed to assume role ${AWS_ACCOUNT_ROLE} in account: ${AWS_ACCOUNT_ID}" >&2
+    return ${assume_role_result}
   fi
 
   export AWS_ACCESS_KEY_ID
   export AWS_SECRET_ACCESS_KEY
   export AWS_SESSION_TOKEN
-  export AWS_DEFAULT_REGION=$AWS_REGION
+  export AWS_DEFAULT_REGION=${AWS_REGION}
 
-  AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId <<< $credentials)
-  AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey <<< $credentials)
-  AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken <<< $credentials)
+  AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId <<< ${credentials})
+  AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey <<< ${credentials})
+  AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken <<< ${credentials})
 
   echo "Successfully assumed role"
 }
 
+# Force a new deployment of the service, which will pick up the new images with the relevant tag
 deploy_service_task() {
-  echo "Forcing deployment of the $service_name service in the $cluster_name cluster"
+  echo "Forcing deployment of the ${service_name} service in the ${cluster_name} cluster"
 
   local service_metadata
-  service_metadata=$(aws ecs update-service --cluster $cluster_name --service $INPUT_SERVICE_NAME --force-new-deployment)
+  service_metadata=$(aws ecs update-service --cluster ${cluster_name} --service ${INPUT_SERVICE_NAME} --force-new-deployment)
   local exitCode=$?
 
-  if [ $exitCode -ne 0 ]; then
-    echo "Failed to force new deployment of the $service_name service in the $cluster_name cluster" >&2
-    return $exitCode
+  if [ ${exitCode} -ne 0 ]; then
+    echo "Failed to force new deployment of the ${service_name} service in the ${cluster_name} cluster" >&2
+    return ${exitCode}
   fi
 }
 
+# Wait for the service to become stable
 wait_for_service_to_stabilise() {
   echo "Waiting for the service to stabilise"
 
-  aws ecs wait services-stable --cluster $cluster_name --services $INPUT_SERVICE_NAME
+  aws ecs wait services-stable --cluster ${cluster_name} --services ${INPUT_SERVICE_NAME}
   local exit_code=$?
 
-  if [ $exit_code -ne 0 ]; then
-    echo "Failed to wait for the stabilisation of the $service_name service in the $cluster_name cluster" >&2
-    return $exit_code
+  if [ ${exit_code} -ne 0 ]; then
+    echo "Failed to wait for the stabilisation of the ${service_name} service in the ${cluster_name} cluster" >&2
+    return ${exit_code}
   fi
   echo "Service has stabilised"
 }
 
-truncate_long_string() {
-  echo $1 | sed -E 's/(.{5})(.{1,})$/\1/'
-}
-
+# Compare running task image digests with the expected image digest
 check_task_container_digest() {
   echo "Checking container image digests"
 
-  echo "Expected image digest: $INPUT_EXPECTED_IMAGE_DIGEST"
+  echo "Expected image digest: ${INPUT_EXPECTED_IMAGE_DIGEST}"
   echo "Retrieving task ARNs"
-  local running_tasks=$(aws ecs list-tasks --cluster $cluster_name --service-name $service_name --desired-status RUNNING | jq .taskArns)
+  local running_tasks=$(aws ecs list-tasks --cluster ${cluster_name} --service-name ${service_name} --desired-status RUNNING | jq .taskArns)
 
   if [ ${#running_tasks[@]} -eq 0 ]; then
     echo "No running tasks found" >&2
     return 3
   fi
 
-  for task_arn in $(echo "$running_tasks" | jq -r '.[]'); do
-    echo "Retrieving image digest for task: $task_arn"
-    local task_image_digest=$(aws ecs describe-tasks --tasks $task_arn --cluster $cluster_name | jq -r .tasks[0].containers[0].imageDigest)
+  for task_arn in $(echo "${running_tasks}" | jq -r '.[]'); do
+    echo "Retrieving image digest for task: ${task_arn}"
+    local task_image_digest=$(aws ecs describe-tasks --tasks ${task_arn} --cluster ${cluster_name} | jq -r .tasks[0].containers[0].imageDigest)
 
-    if [ "$task_image_digest" == "$INPUT_EXPECTED_IMAGE_DIGEST" ]; then
-      echo "The image digest for task: $task_arn matches the expected image digest"
+    if [ "${task_image_digest}" == "${INPUT_EXPECTED_IMAGE_DIGEST}" ]; then
+      echo "The image digest for task: ${task_arn} matches the expected image digest"
       return 0
     else
-      echo "The image digest for task: $task_arn does not match the expected image digest: $task_image_digest" >&2
+      echo "The image digest for task: ${task_arn} does not match the expected image digest: ${task_image_digest}" >&2
       return 3
     fi
   done
 }
 
-echo "Force new ECS deployment"
+echo "Deploy ECS service"
 
 # Get branch name
 # e.g. return "master" from "refs/heads/master"
 branch_name=${GITHUB_REF##*/}
 
-aws_account_id=$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq -r .$branch_name.awsAccountId)
-cluster_name=$(echo $INPUT_ENVIRONMENT_CONFIGURATION | jq -r .$branch_name.clusterName)
-service_name=$INPUT_SERVICE_NAME
+aws_account_id=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.awsAccountId)
+cluster_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.clusterName)
+service_name=${INPUT_SERVICE_NAME}
 
-echo "Target cluster: $cluster_name"
-echo "Target service: $service_name"
+echo "Target cluster: ${cluster_name}"
+echo "Target service: ${service_name}"
 
 check_env_vars || exit $?
 
@@ -140,4 +140,9 @@ deploy_service_task || exit $?
 
 wait_for_service_to_stabilise || exit $?
 
-check_task_container_digest || exit $?
+if [ -z ${INPUT_EXPECTED_IMAGE_DIGEST} ]; then
+  echo "Expected Docker image digest is not set. Skipping the verification of the running Docker image digest."
+  exit 0;
+else
+  check_task_container_digest || exit $?
+fi
