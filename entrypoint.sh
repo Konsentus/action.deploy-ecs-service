@@ -77,7 +77,7 @@ deploy_service_task() {
   echo "Forcing deployment of the ${service_name} service in the ${cluster_name} cluster"
 
   local service_metadata
-  service_metadata=$(aws ecs update-service --cluster ${cluster_name} --service ${INPUT_SERVICE_NAME} --force-new-deployment)
+  service_metadata=$(aws ecs update-service --cluster ${cluster_name} --service ${service_name} --force-new-deployment)
   local exitCode=$?
 
   if [ ${exitCode} -ne 0 ]; then
@@ -90,7 +90,7 @@ deploy_service_task() {
 wait_for_service_to_stabilise() {
   echo "Waiting for the service to stabilise"
 
-  aws ecs wait services-stable --cluster ${cluster_name} --services ${INPUT_SERVICE_NAME}
+  aws ecs wait services-stable --cluster ${cluster_name} --services ${service_name}
   local exit_code=$?
 
   if [ ${exit_code} -ne 0 ]; then
@@ -104,7 +104,7 @@ wait_for_service_to_stabilise() {
 check_task_container_digest() {
   echo "Checking container image digests"
 
-  echo "Expected image digest: ${INPUT_EXPECTED_IMAGE_DIGEST}"
+  echo "Expected image digest: ${expected_image_digest}"
   echo "Retrieving task ARNs"
   local running_tasks=$(aws ecs list-tasks --cluster ${cluster_name} --service-name ${service_name} --desired-status RUNNING | jq .taskArns)
 
@@ -117,7 +117,7 @@ check_task_container_digest() {
     echo "Retrieving image digest for task: ${task_arn}"
     local task_image_digest=$(aws ecs describe-tasks --tasks ${task_arn} --cluster ${cluster_name} | jq -r .tasks[0].containers[0].imageDigest)
 
-    if [ "${task_image_digest}" == "${INPUT_EXPECTED_IMAGE_DIGEST}" ]; then
+    if [ "${task_image_digest}" == "${expected_image_digest}" ]; then
       echo "The image digest for task: ${task_arn} matches the expected image digest"
       return 0
     else
@@ -137,6 +137,8 @@ aws_account_id=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}
 cluster_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.clusterName)
 service_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.serviceName)
 
+expected_image_digest=${INPUT_EXPECTED_IMAGE_DIGEST}
+
 if [ -z ${aws_account_id} ]; then die "Target AWS Account ID not set"; fi
 if [ -z ${cluster_name} ]; then die "Target ECS Cluster Name not set"; fi
 if [ -z ${service_name} ]; then die "Target ECS Service Name not set"; fi
@@ -152,7 +154,7 @@ deploy_service_task || exit $?
 
 wait_for_service_to_stabilise || exit $?
 
-if [ -z ${INPUT_EXPECTED_IMAGE_DIGEST} ]; then
+if [ -z ${expected_image_digest} ]; then
   echo "Expected Docker image digest is not set. Skipping the verification of the running Docker image digest."
   exit 0;
 else
