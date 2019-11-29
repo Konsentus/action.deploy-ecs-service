@@ -21,6 +21,14 @@
 
 # exit with a non-zero status to flag an error/failure
 
+# Convenience function to output an error message and exit with non-zero error code
+die() {
+	local _ret=$2
+	test -n "$_ret" || _ret=1
+	printf "$1\n" >&2
+	exit ${_ret}
+}
+
 # Ensures required environment variables are supplied by workflow
 check_env_vars() {
   local requiredVariables=(
@@ -127,7 +135,11 @@ branch_name=${GITHUB_REF##*/}
 
 aws_account_id=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.awsAccountId)
 cluster_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.clusterName)
-service_name=${INPUT_SERVICE_NAME}
+service_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.serviceName)
+
+if [ -z ${aws_account_id} ]; then die "Target AWS Account ID not set"; fi
+if [ -z ${cluster_name} ]; then die "Target ECS Cluster Name not set"; fi
+if [ -z ${service_name} ]; then die "Target ECS Service Name not set"; fi
 
 echo "Target cluster: ${cluster_name}"
 echo "Target service: ${service_name}"

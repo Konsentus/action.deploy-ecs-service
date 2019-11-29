@@ -29,8 +29,7 @@ jobs:
       - name: Deploy to ECS
         uses: konsentus/action.deploy-ecs-service@master
         with:
-          environment_configuration: '{"master": {"awsAccountId": ${{secrets.ECS_AWS_ACCOUNT_ID}}, "clusterName": "my-ecs-cluster"}}'
-          service_name: my-ecs-service
+          environment_configuration: '{"master": {"awsAccountId": ${{secrets.ECS_AWS_ACCOUNT_ID}}, "clusterName": "my-ecs-cluster", "service_name": "my-ecs-service"}}'
           expected_image_digest: f0af17449a83681de22db7ce16672f16f37131bec0022371d4ace5d1854301e0
 ```
 
@@ -45,8 +44,7 @@ jobs:
 
 ## Required Arguments
 
-- `environment_configuration`: JSON object containing the target AWS Account ID and ECS Cluster Name for each branch. E.g. "{\"master\": {\"awsAccountId\": \"1234567890\", \"clusterName\": \"myCluster\"}}".
-- `service_name`: The name of the service to redeploy.
+- `environment_configuration`: JSON object containing the target AWS Account ID and ECS Cluster and Service Name for each branch. E.g. "{\"master\": {\"awsAccountId\": \"1234567890\", \"clusterName\": \"my-ecs-cluster\", \"serviceName\": \"my-ecs-service\"}}".
 
 ## Optional Arguments
 
