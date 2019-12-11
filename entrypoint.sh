@@ -133,9 +133,9 @@ echo "Deploy ECS service"
 # e.g. return "master" from "refs/heads/master"
 branch_name=${GITHUB_REF##*/}
 
-aws_account_id=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.awsAccountId)
-cluster_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.clusterName)
-service_name=$(echo ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.serviceName)
+aws_account_id=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.awsAccountId)
+cluster_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.clusterName)
+service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r .${branch_name}.serviceName)
 
 expected_image_digest=${INPUT_EXPECTED_IMAGE_DIGEST}
 
