@@ -146,7 +146,7 @@ if [ -z $service_name ]; then
     service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".default.serviceName | select(. != null)") 
 fi
 
-service_name = "$branch_name-$service_name"
+service_name="$branch_name-$service_name"
 
 expected_image_digest=${INPUT_EXPECTED_IMAGE_DIGEST}
 
