@@ -146,6 +146,8 @@ if [ -z $service_name ]; then
     service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".default.serviceName | select(. != null)") 
 fi
 
+service_name = "$branch_name-$service_name"
+
 expected_image_digest=${INPUT_EXPECTED_IMAGE_DIGEST}
 
 if [ -z ${aws_account_id} ]; then die "Target AWS Account ID not set"; fi
@@ -158,6 +160,10 @@ echo "Target service: ${service_name}"
 check_env_vars || exit $?
 
 assume_role || exit $?
+
+if [ ${expected_image_digest} ]; then
+  check_task_container_digest && exit 0
+fi
 
 deploy_service_task || exit $?
 
