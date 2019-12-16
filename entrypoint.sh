@@ -133,9 +133,18 @@ echo "Deploy ECS service"
 # e.g. return "master" from "refs/heads/master"
 branch_name=${GITHUB_REF##*/}
 
-aws_account_id=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.${branch_name}.awsAccountId | select(. != null)' | cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.default.awsAccountId | select(. != null)')
-cluster_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.${branch_name}.clusterName | select(. != null)' | cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.default.clusterName | select(. != null)')
-service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.${branch_name}.serviceName | select(. != null)' | cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r '.default.serviceName | select(. != null)')
+aws_account_id=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".$branch.awsAccountId | select(. != null)")
+if [ -z $aws_account_id ]; then
+    aws_account_id=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".default.awsAccountId | select(. != null)") 
+fi
+cluster_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".$branch.clusterName | select(. != null)")
+if [ -z $cluster_name ]; then
+    cluster_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".default.clusterName | select(. != null)") 
+fi
+service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".$branch.serviceName | select(. != null)")
+if [ -z $service_name ]; then
+    service_name=$(cat ${INPUT_ENVIRONMENT_CONFIGURATION} | jq -r ".default.serviceName | select(. != null)") 
+fi
 
 expected_image_digest=${INPUT_EXPECTED_IMAGE_DIGEST}
 
